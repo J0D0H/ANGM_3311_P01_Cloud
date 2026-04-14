@@ -45,3 +45,32 @@ def generate_cloud(base_size=1.5):
         })
 
 generate_cloud()
+
+
+def create_lightning(start=(0,0,0), end=(0,20,0), segments=20, displacement=1.5):
+
+    if cmds.objExists("lightning_bolt"):
+        cmds.delete("lightning_bolt")
+
+    lightning_bolt = cmds.curve(d=1, p=[start, end], name="lightning_bolt")
+
+    cmds.rebuildCurve(lightning_bolt, s=segments, d=1, ch=False, rpo=True)
+
+    cvs = cmds.ls(lightning_bolt + ".cv[*]", fl=True)
+
+    for i in range(1, len(cvs) - 1):
+
+        cmds.move(
+            random.uniform(-displacement, displacement),
+            random.uniform(-displacement, displacement),
+            random.uniform(-displacement, displacement),
+            cvs[i],
+            r=True
+        )
+
+    cmds.select(clear=True)
+
+    return lightning_bolt
+
+
+create_lightning(start=(0,0,0), end=(0,30,0), segments=25, displacement=2.0)
