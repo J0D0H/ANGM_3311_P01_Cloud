@@ -1,6 +1,9 @@
 import maya.cmds as cmds
 import random
 import math
+from maya import OpenMayaUI as omui
+from shiboken2 import wrapInstance
+from PySide2 import QtWidgets, QtCore
 
 def generate_cloud(base_size=1.5):
     if cmds.objExists("cloud_grp"):
@@ -72,5 +75,75 @@ def create_lightning(start=(0,0,0), end=(0,20,0), segments=20, displacement=1.5)
 
     return lightning_bolt
 
-
 create_lightning(start=(0,0,0), end=(0,30,0), segments=25, displacement=2.0)
+
+def generate_rain(count=None, size=0.05, area=10):
+
+    if cmds.objExists("rain_grp"):
+        cmds.delete("rain_grp")
+
+    rain_grp = cmds.group(empty=True, name="rain_grp")
+
+    if count is None:
+        count = random.randint(200, 500)
+
+    for i in range(count):
+
+        sphere = cmds.polySphere(r=size, name=f"rain_{i}")[0]
+
+        x = random.uniform(-area, area)
+        y = random.uniform(0, area * 2)
+        z = random.uniform(-area, area)
+
+        cmds.move(x, y, z, sphere)
+
+        cmds.parent(sphere, rain_grp)
+
+    return rain_grp
+
+generate_rain()
+
+def get_maya_window():
+    ptr = omui.MQtUtil.mainWindow()
+    return shiboken2.wrapInstance(int(ptr), QtWidgets.QWidget)
+
+
+class WeatherUI(QtWidgets.QDialog):
+
+    def __init__(self, parent=get_maya_window()):
+        super(WeatherUI, self).__init__(parent)
+
+        self.setWindowTitle("Weather Tool")
+        self.setMinimumWidth(250)
+
+        layout = QtWidgets.QVBoxLayout()
+
+        self.cloud_btn = QtWidgets.QPushButton("Generate Cloud")
+        self.lightning_btn = QtWidgets.QPushButton("Generate Lightning")
+        self.rain_btn = QtWidgets.QPushButton("Generate Rain")
+
+        layout.addWidget(self.cloud_btn)
+        layout.addWidget(self.lightning_btn)
+        layout.addWidget(self.rain_btn)
+
+        self.setLayout(layout)
+
+        self.cloud_btn.clicked.connect(generate_cloud)
+        self.lightning_btn.clicked.connect(create_lightning)
+        self.rain_btn.clicked.connect(generate_rain)
+
+
+ui = None
+
+def show_ui():
+    global ui
+    try:
+        ui.close()
+    except:
+        pass
+
+    ui = WeatherUI()
+    ui.show()
+
+
+show_ui()
