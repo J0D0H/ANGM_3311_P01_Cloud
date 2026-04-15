@@ -5,7 +5,7 @@ from maya import OpenMayaUI as omui
 from shiboken2 import wrapInstance
 from PySide2 import QtWidgets, QtCore
 
-def generate_cloud(count=50, base_size=1.5, spread=1.0):
+def generate_cloud(count=75, base_size=2.5, spread=1.0):
 
     if cmds.objExists("cloud_grp"):
         cmds.delete("cloud_grp")
@@ -13,31 +13,51 @@ def generate_cloud(count=50, base_size=1.5, spread=1.0):
     cloud_grp = cmds.group(empty=True, name="cloud_grp")
     spheres = []
 
+    count = int(count * (1 + spread * 0.6))
+
+    max_height = 22
+    min_height = 18
+
+    x_range = 8 * spread
+    z_range = 8 * spread
+
     for i in range(count):
-        radius = random.uniform(base_size * 1, base_size * 1.5)
+
+        radius = random.uniform(base_size * 0.8, base_size * 1.4)
         sphere = cmds.polySphere(name=f"cloudSphere_{i+1}", r=radius)[0]
 
+
         if i == 0:
-            pos = (0, 18, 0)
+            pos = (
+                random.uniform(-1, 1),
+                20,
+                random.uniform(-1, 1)
+            )
+
         else:
-            pSphere = random.choice(spheres[:max(1, len(spheres)//2)])
-            px, py, pz = pSphere["pos"]
-            pr = pSphere["radius"]
+
+            anchor = random.choice(spheres)
+            ax, ay, az = anchor["pos"]
+
 
             theta = random.uniform(0, 2 * math.pi)
             phi = random.uniform(0, math.pi)
 
-            dx = math.sin(phi) * math.cos(theta)
-            dy = abs(math.cos(phi))
-            dz = math.sin(phi) * math.sin(theta)
+            r = random.uniform(0, 3.5 * spread)
 
-            distance = (pr + radius) * 0.55 * spread
+            dx = math.sin(theta) * math.sin(phi)
+            dy = math.cos(phi) * 0.4 
+            dz = math.cos(theta) * math.sin(phi)
 
-            pos = (
-                px + dx * distance,
-                py + dy * distance,
-                pz + dz * distance
-            )
+            x = ax + dx * r
+            y = ay + dy * r
+            z = az + dz * r
+
+            x = max(-x_range, min(x_range, x))
+            z = max(-z_range, min(z_range, z))
+            y = max(min_height, min(max_height, y))
+
+            pos = (x, y, z)
 
         cmds.move(pos[0], pos[1], pos[2], sphere)
         cmds.parent(sphere, cloud_grp)
@@ -55,8 +75,19 @@ def create_lightning(amount=1, displacement=1.5):
 
     for b in range(amount):
 
-        start = (random.uniform(-1, 1), 20, random.uniform(-1, 1))
-        end = (random.uniform(-3, 3), 0, random.uniform(-3, 3))
+        radius = amount * 1.3
+        
+        start = (
+            random.uniform(-radius, radius),
+            20,
+            random.uniform(-radius, radius)
+        )
+
+        end = (
+            random.uniform(-radius * 2, radius * 2),
+            0,
+            random.uniform(-radius * 2, radius * 2)
+        )
 
         bolt = cmds.curve(d=1, p=[start, end], name=f"lightning_{b}")
         cmds.rebuildCurve(bolt, s=20, d=1, ch=False, rpo=True)
@@ -178,7 +209,6 @@ class WeatherUI(QtWidgets.QDialog):
         self.update_lightning()
 
 
-
     def update_cloud(self, *args):
         if self.cloud_toggle.isChecked():
             generate_cloud(
@@ -215,5 +245,6 @@ def show_ui():
 
     ui = WeatherUI()
     ui.show()
-    
-show_ui()
+
+def launch_weather_tool():
+    show_ui()
